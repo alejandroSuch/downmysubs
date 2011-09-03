@@ -1,0 +1,233 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>DownMySubs! 1.0</title>
+<meta name="description" content="">
+<meta name="author" content="">
+
+<!-- Le HTML5 shim, for IE6-8 support of HTML elements -->
+<!--[if lt IE 9]>
+      <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+<!-- Le styles -->
+<link href="css/bootstrap-1.1.0.css" rel="stylesheet">
+
+<!-- Le fav and touch icons -->
+<link rel="shortcut icon" href="images/favicon.ico">
+<link rel="apple-touch-icon" href="images/apple-touch-icon.png">
+<link rel="apple-touch-icon" sizes="72x72"
+	href="images/apple-touch-icon-72x72.png">
+<link rel="apple-touch-icon" sizes="114x114"
+	href="images/apple-touch-icon-114x114.png">
+<script language="JavaScript"
+	src="https://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js"></script>
+<script>
+	var processing = false;
+
+	jQuery.fn.center = function() {
+		this.css("position", "absolute");
+		this.css("top", ($(window).height() - this.height()) / 2
+				+ $(window).scrollTop() + "px");
+		this.css("left", ($(window).width() - this.width()) / 2
+				+ $(window).scrollLeft() + "px");
+		console.debug('center');
+		return this;
+	}
+
+	$(document).ready(function() {
+		// Setup the dnd listeners.
+		var dropZone = document.getElementById('dropbox');
+		var body = document.body
+		dropZone.addEventListener('dragover', handleDragOver, false);
+		//body.addEventListener('dragover', handleDragOverBody, false);
+		dropZone.addEventListener('drop', handleFileSelect, false);
+		dropZone.addEventListener('dragleave', handleDragLeave, false);
+	})
+
+	function handleFileSelect(evt) {
+		if (!processing) {
+			processing = true;
+
+			$('#dropbox').css('background-color', '')
+			$('#dropbox h1').hide()
+			$('#dropbox img').show()
+			$('#dropbox').css('text-align', 'center')
+
+			var files = evt.dataTransfer.files; // FileList object.
+			var query = '';
+			for (i = 0; i < files.length; i++) {
+				file = files[i]
+				if (file.name) {
+					query += 'search=' + file.name.substr(0, file.name.length - 4) + '&'
+				} else if (file.fileName) {
+					query += 'search=' + file.fileName.substr(0, file.fileName.length - 4) + '&'
+				}
+			}
+			
+			$.ajax({
+				url : 'search',
+				type: 'post', 
+				data: query,
+				success : function(json) {
+					returnToNormal()
+					console.log(json)
+					
+					var messages = '';
+					for(i = 0; i < json.errors.length; i++){
+						messages+= json.errors[i] + '<br/>'
+					}
+					
+					for(i = 0; i < json.warnings.length; i++){
+						messages+= json.warnings[i] + '<br/>'
+					}
+					
+					if(messages != ''){
+						showError(messages)
+					}
+					
+					var htmlStr = '';
+					var movies = json.movies.movies;
+					for(i = 0; i < movies.length; i++){
+						var movie = movies[i];
+						var title = movie.name;
+						var cover = movie.cover;
+						var releases = movie.releases;
+						htmlStr+= '<div class="row">';
+						htmlStr+= '<h2>'+title+'</h2>';
+						htmlStr+= '<div class="span16 columns">';
+						htmlStr+= '<div class="span3">';
+						//cover: http://ia.media-imdb.com/images/M/MV5BMTc2MTkyOTc3NF5BMl5BanBnXkFtZTcwMDgwMzI3NA@@._V1._SY220_CR0,15,160,160_.jpg
+						htmlStr+= '<div class="cover" style="background: url(\''+movie.cover+'\');"></div>';
+						htmlStr+= '</div><div class="span13"><table class="zebra-striped"><thead><tr><th>Release name</td><th>Language</th><th>&nbsp;</th></tr></thead><tbody>';
+						for(j = 0; j < releases.length; j++){
+							var release = releases[j];
+							var subtitles = release.subtitles;
+							for (k = 0; k < subtitles.length; k++){
+								var subtitle = subtitles[k];
+								htmlStr+= '<tr><td>'+release.name+'</td><td>'+subtitle.language+'</td><td class="dlBtn"><a class="btn" href="'+subtitle.link+'">Download!</a></td></tr>';
+							}
+						}
+						htmlStr+= '</tbody></table></div></div></div>';
+						$('#results').empty();
+						$('#results').html(htmlStr);
+					}
+					
+					
+				},
+                error:function (xhr, ajaxOptions, thrownError){
+                    alert('ERROR ' + xhr.status + ':\n' + thrownError);
+                }    
+			});
+		} else {
+			showError('Can´t drop more files while processing!')
+		}
+
+		evt.stopPropagation();
+		evt.preventDefault();
+	}
+
+	function showError(msg) {
+		$('#modalError .modal-body p').empty()
+		$('#modalError .modal-body p').html(msg)
+		$('#bg').show()
+		$('#bg').css('opacity', '0.35')
+		$("#modalError").center()
+		$('#modalError').show()
+	}
+
+	function hideError() {
+		$('#bg').hide()
+		$('#modalError').hide()
+	}
+
+	function handleDragOver(evt) {
+		if (!processing) {
+			$('#dropbox').css('background-color', '#FF6666')
+		} else {
+			showError()
+		}
+
+		evt.stopPropagation();
+		evt.preventDefault();
+	}
+
+	function handleDragOverBody(evt) {
+		if (processing) {
+			showError()
+		}
+
+		evt.stopPropagation();
+		evt.preventDefault();
+	}
+
+	function handleDragLeave(evt) {
+		$('#dropbox').css('background-color', '')
+		evt.stopPropagation();
+		evt.preventDefault();
+	}
+
+	function returnToNormal() {
+		processing = false;
+		$('#dropbox').css('background-color', '')
+		$('#dropbox img').hide()
+		$('#dropbox h1').show()
+		$('#dropbox').css('text-align', '')
+
+	}
+</script>
+</head>
+
+<body>
+
+	<div class="topbar">
+		<div class="fill">
+			<div class="container fixed">
+				<h3>
+					<a href="#">DownMySubs!</a>
+				</h3>
+				<ul>
+					<li class="active"><a href="#">Home</a></li>
+					<li><a href="#about">About</a></li>
+					<li><a href="#contact">Contact</a></li>
+					<li><a href="#source">Source code</a></li>
+				</ul>
+			</div>
+		</div>
+	</div>
+
+	<div class="container">
+
+		<!-- Main hero unit for a primary marketing message or call to action -->
+		<div class="hero-unit" id="dropbox" style="height: 300px">
+			<h1>Drop your video files here</h1>
+			<img src="images/loading.gif"
+				style="position: relative; display: none;" />
+		</div>
+
+		<!-- Example row of columns -->
+		<div id="modalError" class="modal"
+			style="position: absolute; top: auto; left: auto; margin: 0 auto; z-index: 1000; display: none">
+			<div class="modal-body">
+				<p></p>
+			</div>
+			<div class="modal-footer">
+				<a href="#" onclick="hideError()" class="btn primary">OK</a>
+			</div>
+		</div>
+		<div id="results">
+			
+		</div>
+
+		<footer>
+			<p>&copy; Alejandro Such Berenguer 2011</p>
+		</footer>
+
+	</div>
+	<!-- /container -->
+	<div id="bg"
+		style="display: none; position: absolute; width: 100%; height: 100%; background-color: #000000; z-index: 999; top: 0; left: 0">&nbsp;</div>
+</body>
+</html>
