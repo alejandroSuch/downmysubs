@@ -1,2 +1,6 @@
 target/*
 target/**
+web-app/WEB-INF/classes/**
+web-app/WEB-INF/classes/*
+stacktrace.log
+web-app/WEB-INF/classes/org/downmysubs/Release.class
