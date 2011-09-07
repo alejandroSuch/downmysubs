@@ -9,14 +9,20 @@ class SearchController {
 		def movies = new Movies()
 		def query = []
 		
+		def clean = {
+			def aux = (it =~ /\[.*\]/).replaceAll("")
+			if(aux.endsWith(".")){
+				aux = aux.substring(0, aux.length()-1)
+			}
+			aux
+		}
+		
 		if(params.search.class.isArray()){
 			params.search.each{
-				def aux = (it =~ /\[.*\]/).replaceAll("")
-				query << ['sublanguageid': 'all', 'query':aux]
+				query << ['sublanguageid': 'all', 'query':clean(it)]
 			}
 		} else {
-			def aux = (params.search =~ /\[.*\]/).replaceAll("")
-			query << ['sublanguageid': 'all', 'query':aux]
+			query << ['sublanguageid': 'all', 'query':clean(params.search)]
 		}
 		
 		
@@ -34,6 +40,9 @@ class SearchController {
 
 		
 		def output = [:]
+		
+		
+		
 		output['errors'] = []
 		output['warnings'] = []
 		output['status'] = 'ERROR'

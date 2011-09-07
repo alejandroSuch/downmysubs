@@ -24,6 +24,24 @@
 	href="images/apple-touch-icon-114x114.png">
 <script language="JavaScript"
 	src="https://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js"></script>
+<script language="JavaScript"
+	src="js/quicksearch.js"></script>
+<script type="text/javascript">
+	var _gaq = _gaq || [];
+	_gaq.push([ '_setAccount', 'UA-25549925-1' ]);
+	_gaq.push([ '_trackPageview' ]);
+
+	(function() {
+		var ga = document.createElement('script');
+		ga.type = 'text/javascript';
+		ga.async = true;
+		ga.src = ('https:' == document.location.protocol ? 'https://ssl'
+				: 'http://www')
+				+ '.google-analytics.com/ga.js';
+		var s = document.getElementsByTagName('script')[0];
+		s.parentNode.insertBefore(ga, s);
+	})();
+</script>
 <script>
 	var processing = false;
 
@@ -45,90 +63,17 @@
 		//body.addEventListener('dragover', handleDragOverBody, false);
 		dropZone.addEventListener('drop', handleFileSelect, false);
 		dropZone.addEventListener('dragleave', handleDragLeave, false);
+		
+		$('#searchForm').submit(function(event) {
+			event.preventDefault();
+		});
+		
+		$('#clearBtn').click(function(event){
+			$('#prependedInput').val('')
+			$.fn.quicksearch('table tbody tr')
+		});
 	})
-
-	function handleFileSelect(evt) {
-		if (!processing) {
-			processing = true;
-
-			$('#dropbox').css('background-color', '')
-			$('#dropbox h1').hide()
-			$('#dropbox img').show()
-			$('#dropbox').css('text-align', 'center')
-
-			var files = evt.dataTransfer.files; // FileList object.
-			var query = '';
-			for (i = 0; i < files.length; i++) {
-				file = files[i]
-				if (file.name) {
-					query += 'search=' + file.name.substr(0, file.name.length - 4) + '&'
-				} else if (file.fileName) {
-					query += 'search=' + file.fileName.substr(0, file.fileName.length - 4) + '&'
-				}
-			}
-			
-			$.ajax({
-				url : 'search',
-				type: 'post', 
-				data: query,
-				success : function(json) {
-					returnToNormal()
-					console.log(json)
-					
-					var messages = '';
-					for(i = 0; i < json.errors.length; i++){
-						messages+= json.errors[i] + '<br/>'
-					}
-					
-					for(i = 0; i < json.warnings.length; i++){
-						messages+= json.warnings[i] + '<br/>'
-					}
-					
-					if(messages != ''){
-						showError(messages)
-					}
-					
-					var htmlStr = '';
-					var movies = json.movies.movies;
-					for(i = 0; i < movies.length; i++){
-						var movie = movies[i];
-						var title = movie.name;
-						var cover = movie.cover;
-						var releases = movie.releases;
-						htmlStr+= '<div class="row">';
-						htmlStr+= '<h2>'+title+'</h2>';
-						htmlStr+= '<div class="span16 columns">';
-						htmlStr+= '<div class="span3">';
-						//cover: http://ia.media-imdb.com/images/M/MV5BMTc2MTkyOTc3NF5BMl5BanBnXkFtZTcwMDgwMzI3NA@@._V1._SY220_CR0,15,160,160_.jpg
-						htmlStr+= '<div class="cover" style="background: url(\''+movie.cover+'\');"></div>';
-						htmlStr+= '</div><div class="span13"><table class="zebra-striped"><thead><tr><th>Release name</td><th>Language</th><th>&nbsp;</th></tr></thead><tbody>';
-						for(j = 0; j < releases.length; j++){
-							var release = releases[j];
-							var subtitles = release.subtitles;
-							for (k = 0; k < subtitles.length; k++){
-								var subtitle = subtitles[k];
-								htmlStr+= '<tr><td>'+release.name+'</td><td>'+subtitle.language+'</td><td class="dlBtn"><a class="btn" href="'+subtitle.link+'">Download!</a></td></tr>';
-							}
-						}
-						htmlStr+= '</tbody></table></div></div></div>';
-						$('#results').empty();
-						$('#results').html(htmlStr);
-					}
-					
-					
-				},
-                error:function (xhr, ajaxOptions, thrownError){
-                    alert('ERROR ' + xhr.status + ':\n' + thrownError);
-                }    
-			});
-		} else {
-			showError('Can´t drop more files while processing!')
-		}
-
-		evt.stopPropagation();
-		evt.preventDefault();
-	}
-
+	
 	function showError(msg) {
 		$('#modalError .modal-body p').empty()
 		$('#modalError .modal-body p').html(msg)
@@ -177,6 +122,103 @@
 		$('#dropbox').css('text-align', '')
 
 	}
+
+	function handleFileSelect(evt) {
+		$('#searchForm').hide();
+
+		if (!processing) {
+			processing = true;
+			
+			$('#results').empty();
+
+			$('#dropbox').css('background-color', '')
+			$('#dropbox h1').hide()
+			$('#dropbox img').show()
+			$('#dropbox').css('text-align', 'center')
+
+			var files = evt.dataTransfer.files; // FileList object.
+			var query = '';
+			for (i = 0; i < files.length; i++) {
+				file = files[i]
+				if (file.name) {
+					query += 'search='
+							+ file.name.substr(0, file.name.length - 4) + '&'
+				} else if (file.fileName) {
+					query += 'search='
+							+ file.fileName.substr(0, file.fileName.length - 4)
+							+ '&'
+				}
+			}
+
+			$.ajax({
+				url  : 'search',
+				type : 'post',
+				data : query,
+				success : function(json) {
+					returnToNormal()
+					console.log(json)
+	
+					var messages = '';
+					for (i = 0; i < json.errors.length; i++) {
+						messages += json.errors[i] + '<br/>'
+					}
+	
+					for (i = 0; i < json.warnings.length; i++) {
+						messages += json.warnings[i] + '<br/>'
+					}
+	
+					if (messages != '') {
+						showError(messages)
+					}
+	
+					var htmlStr = '';
+					var movies = json.movies.movies;
+					for (i = 0; i < movies.length; i++) {
+						var movie = movies[i];
+						var title = movie.name;
+						var cover = movie.cover;
+						var releases = movie.releases;
+						htmlStr += '<div class="row">';
+						htmlStr += '<h2>' + title + '</h2>';
+						htmlStr += '<div class="span16 columns">';
+						htmlStr += '<div class="span3">';
+						//cover: http://ia.media-imdb.com/images/M/MV5BMTc2MTkyOTc3NF5BMl5BanBnXkFtZTcwMDgwMzI3NA@@._V1._SY220_CR0,15,160,160_.jpg
+						//htmlStr+= '<div class="cover" style="background: url(\''+movie.cover+'\');"></div>';
+						htmlStr += '<img class="cover" src="'+movie.cover+'" />';
+						htmlStr += '</div><div class="span13"><table id="movieTable'+i+'" class="zebra-striped"><thead><tr><th>Release name</td><th>Language</th><th>&nbsp;</th></tr></thead><tbody>';
+						for (j = 0; j < releases.length; j++) {
+							var release = releases[j];
+							var subtitles = release.subtitles;
+							for (k = 0; k < subtitles.length; k++) {
+								var subtitle = subtitles[k];
+								htmlStr += '<tr><td>'
+										+ release.name
+										+ '</td><td>'
+										+ subtitle.language
+										+ '</td><td class="dlBtn"><a class="btn" href="'+subtitle.link+'">Download!</a></td></tr>';
+							}
+						}
+						htmlStr += '</tbody></table></div></div></div>';
+						$('#results').html(htmlStr);
+					}
+					
+					$('#searchForm').show();
+					$('input#prependedInput').quicksearch('table tbody tr');
+
+	
+				},
+				error : function(xhr, ajaxOptions, thrownError) {
+					showError('ERROR ' + xhr.status + ':\n' + thrownError);
+					returnToNormal();
+				}
+			});
+		} else {
+			showError('Can´t drop more files while processing!')
+		}
+
+		evt.stopPropagation();
+		evt.preventDefault();
+	}
 </script>
 </head>
 
@@ -186,7 +228,7 @@
 		<div class="fill">
 			<div class="container fixed">
 				<h3>
-					<a href="#">DownMySubs!</a>
+					<a href="#">DownMySubs! <sub>beta</sub> </a>
 				</h3>
 				<ul>
 					<li class="active"><a href="#">Home</a></li>
@@ -217,12 +259,20 @@
 				<a href="#" onclick="hideError()" class="btn primary">OK</a>
 			</div>
 		</div>
-		<div id="results">
-			
-		</div>
+
+		<form id="searchForm" style="display:none">
+			<div class="input-prepend" style="float:left; margin-right:5px">
+				<span class="add-on">Filter results</span>
+				<input class="medium" id="prependedInput" name="prependedInput" size="16" type="text" />
+			</div>
+			<button style="float:left" type="submit" class="btn primary" id="clearBtn">Clear</button>
+			<div class="clearfix"></div>
+        </form>
+		<div class="clearfix"></div>
+		<div id="results"></div>
 
 		<footer>
-			<p>&copy; Alejandro Such Berenguer 2011</p>
+			<p>by Alejandro Such Berenguer 2011</p>
 		</footer>
 
 	</div>
